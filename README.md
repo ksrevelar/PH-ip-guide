@@ -6,6 +6,8 @@ This is a single-page interactive web application designed to provide a comprehe
 
 The guide aims to break down complex legal and procedural information into intuitive, interactive segments, helping users understand key concepts, processes, and requirements without sifting through dense reports.
 
+Permalink to the Guide: ksrevelar.github.io/PH-ip-guide/index.html
+
 ## Features
 
 * **Comprehensive Coverage:** Detailed information on Invention Patents (Direct and PCT routes), Utility Models, and Industrial Designs.
@@ -15,16 +17,6 @@ The guide aims to break down complex legal and procedural information into intui
 * **Post-Grant Maintenance:** Clear explanations of ongoing obligations, grace periods, and renewal processes.
 * **Historical Context:** A brief overview of the evolution of Philippine patent law.
 * **User-Friendly Interface:** Built with a clean design, responsive layout (Tailwind CSS), and intuitive navigation.
-
-## How to Use
-
-1.  **Download/Save:** Save the provided HTML code as a `.html` file (e.g., `index.html`).
-2.  **Open in Browser:** Open the `.html` file directly in any modern web browser (e.g., Chrome, Firefox, Edge, Safari).
-3.  **Navigate:** Use the main navigation bar at the top of the page to jump between different sections of the guide.
-4.  **Interact:**
-    * Click on expandable sections (e.g., in "Foundational Principles") to reveal more detailed information.
-    * Hover over chart elements for specific data points.
-    * Explore tables for comparative data.
 
 ## Technologies Used
 
