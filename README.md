@@ -6,7 +6,7 @@ This is a single-page interactive web application designed to provide a comprehe
 
 The guide aims to break down complex legal and procedural information into intuitive, interactive segments, helping users understand key concepts, processes, and requirements without sifting through dense reports.
 
-Permalink to the Guide: ksrevelar.github.io/PH-ip-guide/index.html
+Permalink to the Guide: ksrevelar.github.io/ph-patent-guide/index.html
 
 ## Features
 
