@@ -1,8 +1,8 @@
-# Interactive Guide to the Philippine IP System
+# Interactive Guide to the Philippine Patent System
 
 ## Overview
 
-This is a single-page interactive web application designed to provide a comprehensive and easily consumable guide to the Intellectual Property (IP) system in the Philippines. It focuses on the prosecution, registration, and maintenance processes for **Invention Patents**, **Utility Models**, and **Industrial Designs**, as governed by the Intellectual Property Code of the Philippines (Republic Act No. 8293, as amended).
+This is a single-page interactive web application designed to provide a comprehensive and easily consumable guide to the patent system in the Philippines. It focuses on the prosecution, registration, and maintenance processes for **Invention Patents**, **Utility Models**, and **Industrial Designs**, as governed by the Intellectual Property Code of the Philippines (Republic Act No. 8293, as amended).
 
 The guide aims to break down complex legal and procedural information into intuitive, interactive segments, helping users understand key concepts, processes, and requirements without sifting through dense reports.
 
