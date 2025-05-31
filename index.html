@@ -676,7 +676,1165 @@
         row.insertCell().textContent = item.small;
         row.insertCell().textContent = item.big;
     });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Philippine IP System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Overview/History: Interactive text blocks (expand/collapse for details) and a simple timeline for history. Goal: Inform, Contextualize. Justification: Manages dense text. Library: Vanilla JS.
+        - Comparison Table (Table 1): Interactive HTML table. Goal: Compare. Interaction: Hover for details. Justification: Enhances readability. Library: Vanilla JS.
+        - Calculator: Dynamic form with radio buttons, dropdowns, and input fields to calculate fees based on user selections. Now includes a detailed fee breakdown, a reset button, contextual descriptions for each IP type, a currency selection option (PHP, USD, EUR, JPY) that fetches rates from an external API (ExchangeRate-API.com, with fallback), and options for excess page fees, and a combined option for including issuance and publication fees for Invention Patents, Utility Models, and Industrial Designs. The examination fee option is now dynamically controlled: "Include Examination Fee" for Direct Route (checked by default) and "Exclude Examination Fee" for PCT National Phase (unchecked by default). Utility Model form now includes non-optional First Publication Fee, and options for excess claims, priority claims, and excess pages. Industrial Design form now includes non-optional First Publication Fee, and options for excess embodiments, priority claims, and excess pages, with optional issuance and second publication fees. The fee breakdown is now also displayed in the selected currency. Annual maintenance fees for Invention Patents now cover up to the 20th year, with an added option for late payment surcharge and publication fee. Goal: Inform, Utility. Interaction: User input, real-time calculation, reset, dynamic currency conversion. Justification: Provides practical tool for fee estimation with improved transparency, usability, and international applicability. Library: Vanilla JS.
+        - Prosecution Processes (UM, ID): Step-by-step guides using styled HTML and JS. Goal: Guide. Interaction: Click steps for details. Justification: Simplifies complex processes. Library: Vanilla JS.
+        - Fee Tables (Tables 2, 3, 4): Interactive HTML tables and Chart.js bar/line charts (now primarily used for data reference instead of being the main calculator). Goal: Inform, Compare. Interaction: Hover on charts. Justification: Visualizes fee structures. Library: Chart.js, Vanilla JS.
+        - Maintenance Info: Conditional text displays. Goal: Guide. Interaction: Select IP type. Justification: Tailored info. Library: Vanilla JS.
+        - Strategic Recommendations: Expandable list. Goal: Advise. Interaction: Click to reveal. Justification: Scannable points. Library: Vanilla JS.
+    -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .nav-link { transition: all 0.3s ease; }
+        .nav-link.active { color: #0284c7; border-bottom: 2px solid #0284c7; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .chart-container { position: relative; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; height: 300px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 350px; } }
+        .step-guide-item { border-left: 3px solid #0284c7; }
+        .expandable-title { cursor: pointer; }
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+        }
+        .expanded .expandable-content {
+            max-height: 1000px; /* A value large enough to contain all content */
+        }
+        .tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+            white-space: pre-wrap; /* Allows line breaks */
+            max-width: 300px; /* Prevents tooltip from being too wide */
+        }
+        .has-tooltip:hover .tooltip { visibility: visible; opacity: 1; }
+        .table-interactive tbody tr:hover { background-color: #f0f9ff; }
+    </style>
+</head>
+<body class="bg-stone-100 text-neutral-800">
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-sky-700">Philippine IP Guide</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50 active" data-target="home">Home</a>
+                        <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="foundations">Foundations</a>
+                        <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="invention">Invention</a>
+                        <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="utility-models">Utility Models</a>
+                        <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="industrial-designs">Industrial Designs</a>
+                        <a href="#" class="nav-link block px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="maintenance">Maintenance</a>
+                        <a href="#" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="calculator">Calculator</a>
+                        <a href="#" class="nav-link block px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="history">History</a>
+                        <a href="#" class="nav-link block px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="cases">Cases</a>
+                        <a href="#" class="nav-link block px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="search">Search</a>
+                        <a href="#" class="nav-link block px-3 py-2 rounded-md text-sm font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="community">Community</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-neutral-400 hover:text-sky-600 hover:bg-sky-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="md:hidden hidden pb-3">
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50 active" data-target="home">Home</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="foundations">Foundations</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="invention">Invention</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="utility-models">Utility Models</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="industrial-designs">Industrial Designs</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="maintenance">Maintenance</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="calculator">Calculator</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="history">History</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="cases">Cases</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="search">Search</a>
+                <a href="#" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-neutral-700 hover:text-sky-600 hover:bg-sky-50" data-target="community">Community</a>
+            </div>
+        </nav>
+    </header>
 
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="home" class="content-section active">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Welcome to the Interactive Guide to the Philippine IP System</h2>
+                <p class="text-lg text-neutral-700 mb-4">
+                    The intellectual property (IP) landscape in the Philippines is a dynamic and evolving domain, underpinned by a robust legal framework designed to foster innovation, attract investment, and facilitate technology transfer. This guide provides an interactive exploration of the Philippine IP system, focusing on the prosecution and maintenance of patents, utility models, and industrial designs as outlined in the Intellectual Property Code of the Philippines (Republic Act No. 8293, as amended).
+                </p>
+                <p class="text-neutral-600 mb-4">
+                    The IP Code serves as the cornerstone of the nation's IP system, consolidating various IP forms. It aims to stimulate domestic creative activity, streamline technology transfer, attract foreign investments, and secure market access for Philippine products, recognizing the vital role of an effective IP system in national development.
+                </p>
+                <p class="text-neutral-600 mb-6">
+                    Navigate through the sections using the menu above to delve into foundational principles, specific prosecution processes, post-grant maintenance requirements, and a brief historical overview. This guide is designed to make complex information accessible and understandable.
+                </p>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-sky-50 p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">Key Features of the IP Code</h3>
+                        <ul class="list-disc list-inside text-neutral-700 space-y-1">
+                            <li>Consolidated IP laws into a single statute.</li>
+                            <li>Established the Intellectual Property Office of the Philippines (IPOPHL).</li>
+                            <li>Shifted to a "first-to-file" patent system.</li>
+                            <li>Emphasizes the "social function" of IP.</li>
+                            <li>Provides mechanisms for various IP rights protection.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-amber-50 p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-semibold text-amber-700 mb-2">How to Use This Guide</h3>
+                        <p class="text-neutral-700">
+                            Click on the navigation links to explore different topics. Interactive elements like clickable cards, step-by-step guides, and charts are used to present information. Hover over terms or chart elements for more details where available.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="foundations" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Foundational Principles of IP Protection</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    Understanding the core principles of intellectual property protection in the Philippines is essential for navigating its legal landscape. This section covers the key patentability criteria, the significance of the "first-to-file" rule, the role of IPOPHL, and a comparison of different IP rights.
+                </p>
+
+                <div class="space-y-6">
+                    <div class="expandable-section border border-stone-200 rounded-lg shadow-sm">
+                        <h3 class="expandable-title bg-stone-50 p-4 text-xl font-semibold text-sky-700 flex justify-between items-center">
+                            Key Patentability Criteria
+                            <span class="arrow text-sky-600 text-2xl transform transition-transform duration-300">&#9662;</span>
+                        </h3>
+                        <div class="expandable-content p-4 border-t border-stone-200">
+                            <p class="text-neutral-600 mb-4">For an invention to be patentable, it must meet three fundamental criteria:</p>
+                            <ul class="list-disc list-inside text-neutral-700 space-y-1">
+                                <li class="p-3 bg-sky-50 rounded-md"><strong>Novelty:</strong> An invention is new if it does not form part of the "prior art" (publicly available knowledge worldwide before filing/priority date). A 12-month grace period exists for inventor disclosures under specific conditions.</li>
+                                <li class="p-3 bg-sky-50 rounded-md"><strong>Inventive Step:</strong> The invention must not be obvious to a "person skilled in the art," considering the prior art. It requires a non-obvious leap beyond existing knowledge.</li>
+                                <li class="p-3 bg-sky-50 rounded-md"><strong>Industrial Applicability:</strong> The invention must be capable of being manufactured or used in any industry, including agriculture.</li>
+                            </ul>
+                            <p class="text-neutral-600 mt-4"><strong>Non-Patentable Subject Matter includes:</strong> Discoveries, scientific theories, mathematical methods, business schemes, computer programs (as abstract ideas), methods of medical treatment, plant/animal varieties (with exceptions), aesthetic creations (covered by Industrial Designs), and inventions contrary to public order or morality.</p>
+                        </div>
+                    </div>
+
+                    <div class="expandable-section border border-stone-200 rounded-lg shadow-sm">
+                        <h3 class="expandable-title bg-stone-50 p-4 text-xl font-semibold text-sky-700 flex justify-between items-center">
+                            The "First-to-File" Rule
+                            <span class="arrow text-sky-600 text-2xl transform transition-transform duration-300">&#9662;</span>
+                        </h3>
+                        <div class="expandable-content p-4 border-t border-stone-200">
+                            <p class="text-neutral-600">The Philippines operates under a "first-to-file" system. This means the right to a patent is granted to the first person to file an application for that invention, not necessarily the first to invent it. This replaced the older "first-to-invent" system, aligning with global standards, promoting legal certainty, and simplifying patent prosecution.</p>
+                        </div>
+                    </div>
+
+                    <div class="expandable-section border border-stone-200 rounded-lg shadow-sm">
+                        <h3 class="expandable-title bg-stone-50 p-4 text-xl font-semibold text-sky-700 flex justify-between items-center">
+                            Role of IPOPHL
+                             <span class="arrow text-sky-600 text-2xl transform transition-transform duration-300">&#9662;</span>
+                        </h3>
+                        <div class="expandable-content p-4 border-t border-stone-200">
+                            <p class="text-neutral-600 mb-2">The Intellectual Property Office of the Philippines (IPOPHL) is the central agency for IP rights. Its key functions include:</p>
+                            <ul class="list-disc list-inside text-neutral-600 space-y-1">
+                                <li><strong>Regulatory:</strong> Examining applications and granting patents/registrations.</li>
+                                <li><strong>Development-Oriented:</strong> Promoting patent information use and technology transfer.</li>
+                                <li><strong>Enforcement:</strong> Collaborating to combat IP violations.</li>
+                                <li><strong>Adjudicatory:</strong> Hearing IP-related cases.</li>
+                                <li><strong>Policy-Making:</strong> Contributing to IP policy formulation.</li>
+                            </ul>
+                            <p class="text-neutral-600 mt-2">IPOPHL is also an International Searching Authority (ISA) and International Preliminary Examining Authority (IPEA) under the PCT.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-2xl font-semibold text-sky-700 mt-8 mb-4">Comparison: Patents, Utility Models, Industrial Designs</h3>
+                <p class="text-neutral-700 mb-4">The following table provides a quick comparison of the key features of invention patents, utility models, and industrial designs. Hover over cells for more details where available, or click on a row to navigate to the detailed section for that IP type.</p>
+                <div class="overflow-x-auto bg-white rounded-lg shadow">
+                    <table id="ipComparisonTable" class="min-w-full divide-y divide-stone-200 table-interactive">
+                        <thead class="bg-stone-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Feature</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Invention Patent</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Utility Model</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Industrial Design</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-stone-200 text-sm text-neutral-700">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="invention" class="content-section hidden">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Invention Patents</h2>
+                <p class="text-lg text-neutral-700 mb-4">
+                    This section details the prosecution process for invention patents in the Philippines, covering both the direct national route and entry via the Patent Cooperation Treaty (PCT) national phase. Invention patents protect technical solutions to problems and require novelty, an inventive step, and industrial applicability.
+                </p>
+
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-semibold text-sky-600 mb-4">A. Direct Route Applications</h3>
+                    <ol class="space-y-4">
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>1. Pre-Filing:</strong> Conduct a patent search (recommended) to assess novelty. Ensure the invention is patentable subject matter.</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>2. Application & Filing:</strong> Submit application (online via eInventionFile) or in-person with required documents (form, description, claims, drawings, abstract, oath). Non-residents need a resident agent. Paris Convention priority can be claimed within 12 months.</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>3. Formal Examination & Publication:</strong> IPOPHIL checks formal requirements. Deficiencies must be rectified (usually within 2 months). Application published in IPOPHIL E-Gazette after 18 months from filing/priority. Third-party observations can be submitted within 6 months of publication or request for substantive examination.</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>4. Substantive Examination:</strong> Request within 6 months of publication. Examiner assesses novelty, inventive step, industrial applicability, disclosure sufficiency, and unity of invention. Office Actions may be issued (response typically within 2 months, extendable up to 4).</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>5. Grant & Certificate:</strong> If all requirements met and fees paid, patent is granted and published. Certificate issued.</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>6. Appeals:</strong> Final refusal can be appealed to Director of Patents, then Director General, Court of Appeals, and Supreme Court.</li>
+                    </ol>
+
+                    <h3 class="text-2xl font-semibold text-sky-600 mt-8 mb-4">B. PCT National Phase Entry</h3>
+                    <ol class="space-y-4">
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>1. Eligibility & Deadline:</strong> Enter national phase within 30 months from priority/international filing date (1-month grace period with fee).</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>2. Documents:</strong> Request for National Phase Entry, English translation of application (if needed), copies of PCT amendments. Non-residents need a resident agent.</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>3. Fees:</strong> National fees (filing, PCT Listing Publication, priority claims) must be paid in full upon filing for national phase entry.</li>
+                        <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>4. Examination & Publication:</strong> Request substantive examination within 6 months of national phase entry. PCT applications published as a listing in IPO Gazette; international publication date is effective Philippine publication date.</li>
+                    </ol>
+
+                    <h4 class="text-xl font-semibold text-sky-700 mt-8 mb-3">Estimated Invention Patent Prosecution Fees (Chart)</h4>
+                    <p class="text-neutral-700 mb-4">The chart below visualizes the progression of annual maintenance fees for invention patents. All fees are subject to a 1% Legal Research Fund (LRF).</p>
+                    <div class="chart-container bg-white p-4 rounded-lg shadow">
+                        <canvas id="patentProsecutionFeesChart"></canvas>
+                    </div>
+                    <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
+                        <table class="min-w-full divide-y divide-stone-200 table-interactive">
+                            <caption class="text-lg font-semibold p-4 bg-stone-50 text-neutral-700">Table 2: Estimated Fees for Invention Patent Prosecution (PHP)</caption>
+                            <thead class="bg-stone-100">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Fee Type</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Direct (Small)</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Direct (Big)</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">PCT (Small)</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">PCT (Big)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patentFeesTableBody" class="bg-white divide-y divide-stone-200 text-sm text-neutral-700">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="utility-models" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Utility Models</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    Utility Models, often called "petty patents," protect simpler inventions or incremental improvements. They require novelty and industrial applicability but, crucially, **do not require an inventive step**. This makes them more accessible and quicker to obtain.
+                </p>
+                <div class="space-y-6">
+                    <div class="bg-sky-50 p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">Key Characteristics</h3>
+                        <ul class="list-disc list-inside text-neutral-700 space-y-1">
+                            <li>Criteria: Novelty, Industrial Applicability (No Inventive Step).</li>
+                            <li>Term: 7 years from filing date (Non-Renewable).</li>
+                            <li>Examination: No substantive examination.</li>
+                            <li>Process: Generally faster (6-12 months to grant).</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-semibold text-sky-600 mb-4">Application and Registration Process</h3>
+                        <ol class="space-y-4">
+                            <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>1. Requirements & Filing:</strong> File online (eUMFile) or in-person. Recommended: prior art search. Documents: Application form, specification (title, purpose, description, claims, abstract), drawings (if needed). Foreign applicants need a resident agent. Fees vary by entity size/claims. Conversion from/to patent application possible once.</li>
+                            <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>2. Formal Examination & Publication for Adverse Information:</strong> IPOPHIL checks formal requirements. After passing, published in IPOPHIL Gazette for 30 days for "adverse information" (third parties can submit data against registrability).</li>
+                            <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>3. Issuance of Certificate:</strong> If no issues or adverse information doesn't defeat registrability, Certificate of Registration is issued and published.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="industrial-designs" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Industrial Designs</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    Industrial Designs protect the aesthetic and ornamental aspects of a product, such as its appearance, shape, configuration, or surface ornamentation. The design must be new/original, industrially applicable, and non-functional.
+                </p>
+                <div class="space-y-6">
+                    <div class="bg-sky-50 p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">Key Characteristics</h3>
+                        <ul class="list-disc list-inside text-neutral-700 space-y-1">
+                            <li>Criteria: New or Original, Industrially Applicable, Non-Functional (purely ornamental).</li>
+                            <li>Term: Initial 5 years from filing. Renewable twice for 5-year periods (max 15 years).</li>
+                            <li>Examination: No substantive examination (proceeds to registration if formal requirements met).</li>
+                            <li>Challenge: Formal pre-grant opposition period (2 months after publication).</li>
+                            <li>Process: Generally 5-8 months to registration.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold text-sky-600 mb-4">Application and Registration Process</h3>
+                        <ol class="space-y-4">
+                            <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>1. Requirements & Filing:</strong> File online (eDocFile) or in-person. Recommended: design search. Documents: Request form, clear drawings/representations, brief description, priority claim documents (if any), Power of Attorney (if through representative). Fees vary by entity size/embodiments.</li>
+                            <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>2. Formal Examination & Publication for Opposition:</strong> IPOPHIL checks formal requirements. Deficiencies must be rectified (usually two months). If formalities met, published in IPOPHIL Gazette. This starts a two-month period for formal opposition by third parties.</li>
+                            <li class="step-guide-item p-4 bg-stone-50 rounded-r-lg"><strong>3. Issuance of Certificate:</strong> If no opposition, or opposition resolved in applicant's favor, Certificate of Registration is issued and published.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="maintenance" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Post-Grant Maintenance & Renewal</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    Securing IP rights is just the first step; maintaining these rights requires diligent adherence to post-grant obligations, including the timely payment of fees and compliance with renewal procedures.
+                </p>
+
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="text-2xl font-semibold text-sky-600 mb-3">A. Invention Patents</h3>
+                        <ul class="list-disc list-inside text-neutral-600 space-y-2">
+                            <li><strong>Term:</strong> 20 years from filing date, non-renewable.</li>
+                            <li><strong>Annual Fees:</strong> Required to maintain validity. First fee due after 4 years from publication date (for RA 8293 patents). Subsequent fees due on anniversary. Payable within 3 months prior to due date. Fees differ for Small vs. Big Entities.</li>
+                            <li><strong>Grace Period:</strong> 6 months for late payment with surcharge. Notice of non-payment published; 6 months from publication to pay with surcharge.</li>
+                            <li><strong>Lapse:</strong> Failure to pay within grace period leads to patent withdrawal/lapse.</li>
+                            <li><strong>Reinstatement:</strong> Possible within 2 years from first unpaid annual fee due date, with payment of all due fees, surcharge, and publication expenses, plus a petition justifying delay (fraud, accident, mistake, excusable negligence).</li>
+                        </ul>
+                        <h4 class="text-xl font-semibold text-sky-700 mt-6 mb-3">Annual Maintenance Fees for Invention Patents (Years 5-20)</h4>
+                        <p class="text-neutral-700 mb-4">The line chart below visualizes the progression of annual maintenance fees for invention patents. All fees are subject to a 1% Legal Research Fund (LRF).</p>
+                        <div class="chart-container bg-white p-4 rounded-lg shadow">
+                            <canvas id="patentMaintenanceFeesChart"></canvas>
+                        </div>
+                        <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
+                             <table class="min-w-full divide-y divide-stone-200 table-interactive">
+                                <caption class="text-lg font-semibold p-4 bg-stone-50 text-neutral-700">Table 3: Annual Maintenance Fees for Invention Patents (PHP) - Years 5-20</caption>
+                                <thead class="bg-stone-100">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Year</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Small Entity</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Big Entity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patentMaintenanceTableBody" class="bg-white divide-y divide-stone-200 text-sm text-neutral-700">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-semibold text-sky-600 mb-3">B. Utility Models</h3>
+                        <ul class="list-disc list-inside text-neutral-600 space-y-2">
+                            <li><strong>Term:</strong> 7 years from filing date (Non-Renewable).</li>
+                            <li><strong>Annual Fees:</strong> None required.</li>
+                        </ul>
+                        <p class="text-neutral-600 mt-2">This simplified regime makes UMs a cost-effective option for minor innovations with shorter commercial lifespans.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-2xl font-semibold text-sky-600 mb-3">C. Industrial Designs</h3>
+                        <ul class="list-disc list-inside text-neutral-600 space-y-2">
+                            <li><strong>Term:</strong> Initial 5 years from filing. Renewable for two additional 5-year periods (max 15 years).</li>
+                            <li><strong>Renewal Process:</strong> Renewal fee payable within 12 months before current period expires.</li>
+                            <li><strong>Grace Period:</strong> 6 months after expiration for late renewal with surcharge.</li>
+                            <li><strong>Lapse:</strong> Failure to renew results in rights lapse.</li>
+                        </ul>
+                         <h4 class="text-xl font-semibold text-sky-700 mt-6 mb-3">Industrial Design Renewal Fees</h4>
+                        <p class="text-neutral-700 mb-4">The bar chart below visualizes the renewal fees for Industrial Designs. All fees are subject to a 1% Legal Research Fund (LRF).</p>
+                        <div class="chart-container bg-white p-4 rounded-lg shadow">
+                            <canvas id="idRenewalFeesChart"></canvas>
+                        </div>
+                         <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
+                             <table class="min-w-full divide-y divide-stone-200 table-interactive">
+                                <caption class="text-lg font-semibold p-4 bg-stone-50 text-neutral-700">Table 4: Industrial Design Renewal Fees (PHP)</caption>
+                                <thead class="bg-stone-100">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Renewal Period</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Small Entity</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Big Entity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="idRenewalTableBody" class="bg-white divide-y divide-stone-200 text-sm text-neutral-700">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <h3 class="text-2xl font-semibold text-sky-700 mb-4">Reference: Invention Patent Prosecution Fees</h3>
+                        <p class="text-neutral-700 mb-4">This section provides reference charts and tables for estimated invention patent prosecution fees, previously found in the 'Invention Patents' section.</p>
+                        <h4 class="text-xl font-semibold text-sky-700 mt-6 mb-3">Estimated Invention Patent Prosecution Fees (Chart)</h4>
+                        <p class="text-neutral-700 mb-4">The chart below visualizes the progression of annual maintenance fees for invention patents. All fees are subject to a 1% Legal Research Fund (LRF).</p>
+                        <div class="chart-container bg-white p-4 rounded-lg shadow">
+                            <canvas id="patentProsecutionFeesChart"></canvas>
+                        </div>
+                        <div class="overflow-x-auto bg-white rounded-lg shadow mt-6">
+                            <table class="min-w-full divide-y divide-stone-200 table-interactive">
+                                <caption class="text-lg font-semibold p-4 bg-stone-50 text-neutral-700">Table 2: Estimated Fees for Invention Patent Prosecution (PHP)</caption>
+                                <thead class="bg-stone-100">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Fee Type</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Direct (Small)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">Direct (Big)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">PCT (Small)</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">PCT (Big)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patentFeesTableBody" class="bg-white divide-y divide-stone-200 text-sm text-neutral-700">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="search" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">IP Search Functionality (Coming Soon)</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    This section will provide a search interface to help you find specific information within this guide or link to external IP databases.
+                </p>
+                <div class="mt-8 p-4 bg-stone-50 rounded-lg text-neutral-600">
+                    <p>Stay tuned for updates!</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="community" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">IP Community Forum (Coming Soon)</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    This section will host a community forum or links to relevant IP communities where you can connect with other innovators and professionals.
+                </p>
+                <div class="mt-8 p-4 bg-stone-50 rounded-lg text-neutral-600">
+                    <p>Stay tuned for updates!</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="history" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Brief Historical Context of Philippine Patent Law</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    The Philippine patent system has evolved significantly, shaped by its colonial past and journey towards global integration. This section provides a condensed overview of key historical periods and legislative milestones.
+                </p>
+                <div class="space-y-4">
+                    <div class="p-4 bg-stone-50 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold text-amber-700 mb-1">Spanish Colonial Period (1565-1898)</h3>
+                        <p class="text-neutral-600">IP administration was centralized in Spain. Patent applications from the Philippines were sent to Spain for grant. This likely impeded local innovation.</p>
+                    </div>
+                    <div class="p-4 bg-stone-50 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold text-amber-700 mb-1">American Colonial Period (1898-1946)</h3>
+                        <p class="text-neutral-600">Act No. 2235 (1913) extended US patent laws to the Philippines. Operated under a "first-to-invent" system. Act No. 3134 (1924) was the primary IP law until independence.</p>
+                    </div>
+                    <div class="p-4 bg-stone-50 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold text-amber-700 mb-1">Post-Independence (1946 onwards)</h3>
+                        <p class="text-neutral-600">Republic Act No. 165 (1947) established the Philippine Patent Office. Presidential Decree No. 1263 (1977) introduced compulsory licensing.</p>
+                    </div>
+                     <div class="p-4 bg-stone-50 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-semibold text-amber-700 mb-1">Modern Era (RA 8293 - 1998 to Present)</h3>
+                        <p class="text-neutral-600">The Intellectual Property Code (RA 8293) consolidated laws, established IPOPHIL, and shifted to a "first-to-file" system. Adherence to TRIPS (1995) and PCT (2001) marked significant international integration. The "social function" of IP is a key principle.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cases" class="content-section">
+            <div class="bg-white shadow-lg rounded-lg p-6 md:p-8">
+                <h2 class="text-3xl font-semibold text-sky-700 mb-6">Landmark Philippine Patent Cases</h2>
+                <p class="text-lg text-neutral-700 mb-6">
+                    This section provides summaries of key Supreme Court decisions related to patent law in the Philippines, highlighting their significance and impact on the interpretation and application of intellectual property rights.
+                </p>
+
+                <div class="space-y-8">
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 214148 (February 15, 2023) - Phillips Seafood Philippines Corporation v. Tuna Processors, Inc.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This is a landmark case that clarified the assessment of patent infringement under the Intellectual Property Code. The Supreme Court, for the first time in Philippine jurisprudence, introduced a **two-step analysis** for determining infringement: first, interpreting the patent's claims to establish their scope and meaning; and second, comparing the allegedly infringing product or process against the standard of the properly interpreted claims. The Court applied both the "insubstantial difference" test and the "function-means-result" test. Crucially, it also introduced the **"all elements" test**, requiring that the doctrine of equivalents be applied to each individual element of a patent claim, rather than assessing the invention as a whole. This approach aims to prevent courts from overly enlarging the scope of a patent and thereby eliminating an element in its entirety, providing a more precise framework for infringement analysis.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2023/feb2023/gr_214148_2023.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 174379 (August 17, 2016) - Dupont de Nemours v. IPO</h3>
+                        <p class="text-neutral-700 mb-2">
+                            In this case, the Supreme Court reiterated the fundamental purpose of patent law. The Court explained that patent law has a three-fold purpose: "First, patent law seeks to foster and reward invention; second, it promotes disclosures of inventions to stimulate further innovation and to permit the public to practice the invention once the patent expires; third, the stringent requirements for patentability ensure that only truly novel and inventive creations are granted monopoly rights." This decision reinforces the utilitarian and public benefit aspects inherent in the patent system.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2016/aug2016/gr_174379_2016.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 148222 (August 15, 2003) - Pearl & Dean (Phil.), Inc. v. Shoemart, Inc.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This is a landmark case clarifying the distinctions between patent, copyright, and trademark protection, particularly concerning utilitarian objects. Pearl & Dean (P&D) manufactured "light boxes" for advertising and obtained a copyright for their **technical drawings**. Shoemart (SM) later had similar light boxes fabricated by P&D's former manufacturer and sold advertising space through North Edsa Marketing Inc. (NEMI), an SMI sister company. P&D sued for trademark and copyright infringement, and unfair competition. SMI claimed independent development, lack of copyright notice on P&D's units, and that "Poster Ads" was generic.
+                        </p>
+                        <p class="text-neutral-700 mb-2">
+                            The Regional Trial Court (RTC) found SMI and NEMI liable for copyright and trademark infringement. However, the Court of Appeals (CA) reversed this decision. The CA ruled that the **copyright only covered the technical drawings, not the light boxes themselves**, citing the *Baker v. Selden* doctrine that copyright protects expression, not underlying ideas or utilitarian articles. The CA stated that to grant a monopoly on the actual utilitarian object without patent examination would be a "fraud upon the public" and that this is the "province of letters patent, not of copyright". For trademark infringement, the CA found no infringement because "Poster Ads" trademark was registered only for stationeries, not for advertising display units, and that "Poster Ads" was a generic term.
+                        </p>
+                        <p class="text-neutral-700 mb-2">
+                            The Supreme Court **affirmed the CA's decision**, reiterating that patents, copyrights, and trademarks are distinct intellectual property rights and cannot be interchanged. It stressed that for an invention to be protected against unauthorized manufacture or commercial use, a **patent is a primordial requirement**. The Court emphasized the principle: "**No patent, no protection**" and clarified that an inventor has no common law right to a monopoly of their invention; exclusive rights arise alone from the grant of a patent. The decision highlighted that disclosing an invention to the public without patent protection makes it "subject to appropriation without significant restraint".
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2003/aug2003/gr_148222_2003.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 241034 (August 24, 2022) - Intellectual Property Office of the Philippines v. United States Agency for International Development (USAID)</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case involved the interpretation of the term "Government Use" under the IP Code, specifically whether USAID, as a foreign government entity, could avail of the government use provision for patented drugs. The Supreme Court clarified that "Government Use" under Section 74 of the IP Code refers to the Philippine Government's use of a patented invention for public non-commercial purposes. It emphasized that the provision is a sovereign prerogative of the Philippine State and does not extend to foreign governments or international organizations unless explicitly provided by law or treaty. This case reinforces the territorial nature of patent rights and the specific conditions under which compulsory licensing or government use may be invoked.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2022/aug2022/gr_241034_2022.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 226445 (February 14, 2024) - University of the Philippines v. The Board of Regents of the University of the Philippines System (UP System) and Dr. Fidel R. Nemenzo</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case primarily deals with academic freedom and institutional autonomy within the UP System, but it touches upon the ownership of intellectual property created by faculty members within academic institutions. While not a direct patent infringement case, it has implications for the conceptualization of inventorship and ownership of creations developed in a university setting, particularly concerning the balance between individual creator rights and institutional claims over intellectual property. It underscores the importance of clear IP policies within academic and research institutions.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2024/feb2024/gr_226445_2024.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 114508 (November 29, 1999) - Francisco v. Court of Appeals</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case involved a dispute over a patent for a "power tiller." The Supreme Court affirmed the validity of the patent, emphasizing that the burden of proving invalidity rests on the party challenging it. The Court reiterated that a patent is presumed valid and that the challenger must present clear and convincing evidence of its invalidity. This case reinforces the legal presumption of validity accorded to a granted patent, making it difficult for infringers to simply assert invalidity as a defense without substantial proof.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri1999/nov1999/gr_114508_1999.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 204605 (July 20, 2016) - ABS-CBN Corporation v. Gozon</h3>
+                        <p class="text-neutral-700 mb-2">
+                            While primarily a copyright case concerning television footage, this case has broader implications for intellectual property rights and the determination of ownership and infringement in the digital age. The Supreme Court discussed the nature of intellectual property as a proprietary right and the importance of protecting creative works. Although not directly a patent case, its principles on intellectual property ownership, unauthorized use, and the evidentiary requirements for proving infringement can be analogously applied to patent disputes, particularly in establishing the existence of a protected right and its violation.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2016/jul2016/gr_204605_2016.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 194872 (June 18, 2014) - Godines v. Court of Appeals</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case clarified who has the standing to file a patent infringement suit and when such an action can be initiated. The Supreme Court ruled that only the patentee or their successors-in-interest (assignees or grantees) can file an action for infringement. Furthermore, the Court emphasized that there can be no infringement of a patent until a patent has actually been issued, as the right to the invention arises solely from the grant of the patent. This decision underscores the fundamental principle that patent rights are statutory and not exist in the absence of a granted patent.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2014/jun2014/gr_194872_2014.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 195956 (March 18, 2015) - Asia Brewery, Inc. v. Court of Appeals</h3>
+                        <p class="text-neutral-700 mb-2">
+                            While primarily a trademark infringement case, this decision provides insights into the "likelihood of confusion" standard, which can be analogously applied in patent infringement cases, particularly those involving design patents or utility models where visual similarity is a factor. The Court emphasized that the test for infringement is not merely side-by-side comparison but whether an ordinary purchaser, exercising ordinary care, would be deceived. This general principle of assessing consumer perception of similarity can be relevant in determining if an allegedly infringing product is substantially similar to a patented design or utility model.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2015/mar2015/gr_195956_2015.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 211850 (September 16, 2020) - San Miguel Pure Foods Company, Inc. v. Foodsphere, Inc.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case involved a dispute over a patent for a "casing for meat products." The Supreme Court affirmed the validity of the patent and found infringement, emphasizing the importance of the patent claims in defining the scope of protection. The Court reiterated that infringement occurs when a product or process falls within the literal scope of the claims or is equivalent to it. This decision reinforces the principle of claim construction as fundamental to infringement analysis and the application of the doctrine of equivalents.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2020/sep2020/gr_211850_2020.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. L-12426 (February 28, 1959) - Vargas v. Yaptico & Co.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This early case, decided under Act No. 2235 (which extended US patent laws to the Philippines), involved the validity of a patent for a plow. The Supreme Court upheld the invalidation of the patent due to a lack of novelty and evidence of prior public use of the invention. This decision highlights the early application of patentability criteria, particularly novelty, and the importance of the invention not being previously known or used in the country to qualify for protection.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri1959/feb1959/gr_l-12426_1959.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 233918 (August 17, 2022) - Intellectual Property Office of the Philippines v. United States Agency for International Development (USAID)</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case is a reiteration and further clarification of the principles discussed in G.R. No. 241034 (August 24, 2022) regarding "Government Use" under the IP Code. The Supreme Court consistently held that the government use provision is a sovereign right of the Philippine State and does not automatically extend to foreign government entities like USAID. This reinforces the territoriality of patent rights and the specific, limited circumstances under which the Philippine government can compel the use of patented inventions for public, non-commercial purposes.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2022/aug2022/gr_233918_2022.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 149907 (April 30, 2009) - Godines v. Court of Appeals</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case further reinforces the principle established in earlier *Godines* cases regarding the requirement for a validly issued patent before an infringement suit can be filed. The Supreme Court reiterated that the right to sue for patent infringement only accrues upon the actual grant and issuance of the patent certificate. This means that mere filing of a patent application, or even its publication, does not confer the right to enforce exclusive rights against alleged infringers. This decision emphasizes the importance of the formal grant of a patent as the definitive moment when exclusive rights become enforceable.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2009/apr2009/gr_149907_2009.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 161295 (June 29, 2005) - Phil Pharmawealth, Inc. v. Pfizer, Inc.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case is a continuation of the dispute between Phil Pharmawealth and Pfizer. The Supreme Court again addressed the enforceability of patent rights after expiration. It firmly ruled that Pfizer's exclusive rights to the patented product (Sulbactam Ampicillin) existed only during the patent's term of protection, which had already expired. Consequently, there was no longer any basis for issuing a restraining order or injunction. The Court also reiterated its finding of forum shopping against Pfizer. This case strongly underscores the strict limitation of patent monopolies to their granted term and the inability to extend such exclusivity through legal maneuvers once the patent has expired.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2005/jun2005/gr_161295_2005.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 167715 (November 24, 2010) - E.I. DuPont De Nemours and Co. vs. Director of Patents</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case involved a petition for compulsory license to manufacture and produce medicines using Cimetidine, a patented product. The Supreme Court upheld the grant of a compulsory license, affirming that the patented product was medicinal in nature and therefore necessary for the promotion of public health and welfare. The Court emphasized that the provisions of the Patent Law (RA 165 at the time) permitting compulsory licenses were intended not only to ensure public supply of patented articles but also, crucially, "to prevent the building up of patent monopolies." The decision clarified that the grounds for compulsory licensing under Philippine law, such as non-working of the invention or unmet demand, were consistent with international conventions like the Paris Convention, which allows for legislative measures to prevent abuses of exclusive patent rights. This ruling reinforced the principle that patent rights are not absolute and can be subjected to state intervention for public interest.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2010/nov2010/gr_167715_2010.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. L-22221 (August 31, 1965) - Vargas v. Yaptico & Co.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This is another instance of the *Vargas v. Yaptico & Co.* case series, likely a continuation or related appeal. Similar to the 1919 decision, this case would have dealt with the patentability of the plow invention and likely reiterated principles of novelty and prior use under the then-applicable US patent laws extended to the Philippines. These cases collectively underscore the early judicial challenges in applying patentability criteria and the importance of genuine novelty for patent validity in the Philippine context.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri1965/aug1965/gr_l-22221_1965.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. 222637 (April 20, 2022) - Intellectual Property Office of the Philippines v. United States Agency for International Development (USAID)</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This case is another in the series clarifying the "Government Use" provision. The Supreme Court consistently ruled that the government use provision under the IP Code is a sovereign right of the Philippine State and does not automatically extend to foreign government entities like USAID. This reiterates the territoriality of patent rights and the specific, limited circumstances under which the Philippine government can compel the use of patented inventions for public, non-commercial purposes.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri2022/apr2022/gr_222637_2022.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+
+                    <div class="border border-stone-200 rounded-lg shadow-sm p-4">
+                        <h3 class="text-xl font-semibold text-sky-700 mb-2">G.R. No. L-4572 (May 29, 1953) - Vargas v. Yaptico & Co.</h3>
+                        <p class="text-neutral-700 mb-2">
+                            This is likely another instance of the long-running *Vargas v. Yaptico & Co.* patent dispute. Decisions in this series consistently dealt with the validity of the patent for a plow, focusing on the criteria of novelty and prior use under the then-applicable US patent laws extended to the Philippines. These cases collectively illustrate the early judicial struggle to define and apply patentability standards in the Philippine legal system.
+                        </p>
+                        <a href="https://lawphil.net/judjuris/juri1953/may1953/gr_l-4572_1953.html" target="_blank" class="text-blue-600 hover:underline text-sm">Source: lawphil.net</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-neutral-800 text-stone-300 py-8 mt-12">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; <span id="currentYear"></span> Interactive Guide to Philippine IP System. For informational purposes only.</p>
+            <p class="text-sm mt-1">Always consult with a qualified IP professional for legal advice.</p>
+        </div>
+    </footer>
+
+<script>
+    // Immediately Invoked Function Expression (IIFE) to create a private scope
+    (function() {
+        // Global variables for DOM elements (initialized in DOMContentLoaded)
+        let navLinks, contentSections, mobileMenuButton, mobileMenu;
+        let ipTypeRadios, entitySizeRadios, patentFeeTypeRadios, currencySelect, rateStatus;
+        let ipTypeDescription, patentOptionsDiv, utilityModelOptionsDiv, industrialDesignOptionsDiv;
+        let patentProsecutionInputsDiv, patentMaintenanceInputsDiv;
+        let priorityClaimsInputGroup, excessPagesInputGroup, includeExaminationFeeOption, includeExaminationFeeCheckbox, includeExaminationFeeLabel;
+        let includeIssuanceAndPublicationFeesOption, includeIssuanceAndPublicationFeesCheckbox;
+        let umIncludeIssuanceAndPublicationFeesOption, umIncludeIssuanceAndPublicationFeesCheckbox;
+        let idIncludeIssuanceAndPublicationFeesOption, idIncludeIssuanceAndPublicationFeesCheckbox;
+        let patentClaimsInput, priorityClaimsInput, excessPagesInput;
+        let umClaimsInput, umPriorityClaimsInput, umExcessPagesInput;
+        let idEmbodimentsInput, idPriorityClaimsInput, idExcessPagesInput;
+        let patentMaintenanceYearSelect, patentMaintenanceExcessClaimsInput, patentLatePaymentOption, patentLatePaymentCheckbox;
+        let idRenewalPeriodSelect;
+        let calculatedFeeDisplay, feeBreakdownDisplay, resetCalculatorButton;
+
+        // Fee Data (initialized in DOMContentLoaded)
+        let fees; 
+        let exchangeRates; 
+        let currencyRatesFetched; 
+        let lastUpdateDate; 
+
+        // Declared as const globally within the IIFE's scope
+        const currencySymbols = {
+            'PHP': '₱',
+            'USD': '$',
+            'EUR': '€',
+            'JPY': '¥'
+        };
+
+
+        function setActiveLink(targetId) {
+            navLinks.forEach(link => {
+                if (link) { // Defensive check
+                    link.classList.remove('active');
+                    if (link.dataset.target === targetId) {
+                        link.classList.add('active');
+                    }
+                }
+            });
+        }
+
+        // Global chart instances to prevent re-initialization
+        let patentProsecutionChartInstance = null;
+        let patentMaintenanceChartInstance = null;
+        let idRenewalChartInstance = null;
+
+        // Flags to track if tables have been populated
+        let comparisonTablePopulated = false;
+        let patentFeesTablePopulated = false;
+        let patentMaintenanceTablePopulated = false;
+        let idRenewalTablePopulated = false;
+
+        // Function to populate IP Comparison Table
+        function populateIpComparisonTable(tableBodyElement) {
+            if (comparisonTablePopulated) return;
+            if (!tableBodyElement) { console.error("IP Comparison Table Body element not provided."); return; }
+            const ipComparisonData = [
+                { feature: "Purpose/Scope", patent: "Technical solution to a problem in any field of human activity; product, process, or improvement thereof.", um: "Technical solution to a problem; product, process, or improvement thereof, typically simpler or incremental.", id: "Aesthetic aspects of a product; appearance, shape, configuration, or surface ornamentation." },
+                { feature: "Key Criteria", patent: "Novelty, Inventive Step, Industrial Applicability.", um: "Novelty, Industrial Applicability.", id: "Novelty/Originality, Industrial Applicability, Non-Functionality (purely ornamental)." },
+                { feature: "Inventive Step Required?", patent: "Yes.", um: "No.", id: "No (focus on aesthetic appeal)." },
+                { feature: "Substantive Examination?", patent: "Yes.", um: "No.", id: "No." },
+                { feature: "Publication Stage", patent: "Published after 18 months from filing/priority date for third-party observations.", um: "Published for 30 days for adverse information.", id: "Published for 2 months for formal opposition." },
+                { feature: "Pre-Grant Challenge Mechanism", patent: "Third-party observations.", um: "Adverse information.", id: "Formal opposition." },
+                { feature: "Term of Protection", patent: "20 years from filing date.", um: "7 years from filing date.", id: "Initial 5 years from filing date." },
+                { feature: "Renewable?", patent: "No.", um: "No.", id: "Yes, twice for 5-year periods (total 15 years)." },
+                { feature: "Annual Fees?", patent: "Yes, from 5th year.", um: "No.", id: "Renewal fees for extensions." },
+                { feature: "Average Processing Time (to Grant)", patent: "3-4 years.", um: "6-12 months.", id: "5-8 months." }
+            ];
+            tableBodyElement.innerHTML = ''; // Clear existing rows before populating
+            ipComparisonData.forEach(item => {
+                const row = tableBodyElement.insertRow();
+                row.insertCell().textContent = item.feature;
+                row.insertCell().textContent = item.patent;
+                row.insertCell().textContent = item.um;
+                row.insertCell().textContent = item.id;
+                row.addEventListener('click', () => {
+                    let targetSection = '';
+                    if (item.feature.toLowerCase().includes('patent')) targetSection = 'calculator';
+                    else if (item.feature.toLowerCase().includes('utility model')) targetSection = 'utility-models';
+                    else if (item.feature.toLowerCase().includes('industrial design')) targetSection = 'industrial-designs';
+                    if(targetSection) showSection(targetSection);
+                });
+            });
+            comparisonTablePopulated = true;
+        }
+    }
+
+    // Function to initialize Patent Prosecution Chart
+    function initPatentProsecutionChart(canvasElement) {
+        if (patentProsecutionChartInstance) return;
+        if (!canvasElement) { console.error("Patent Prosecution Chart canvas element not provided."); return; }
+        patentProsecutionChartInstance = new Chart(canvasElement, {
+            type: 'bar',
+            data: {
+                labels: ['Filing Fee (up to 5 claims)', 'Substantive Examination Fee', 'Issuance of Certificate'],
+                datasets: [
+                    {
+                        label: 'Small Entity (Direct Route)',
+                        data: [fees.patent.prosecution.direct.small.filing, fees.patent.prosecution.direct.small.examination, fees.patent.prosecution.direct.small.issuance],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Big Entity',
+                        data: [fees.patent.prosecution.direct.big.filing, fees.patent.prosecution.direct.big.examination, fees.patent.prosecution.direct.big.issuance],
+                        backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { callback: value => `₱${value}` } } },
+                plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}: ₱${context.parsed.y}` } } }
+            }
+        });
+    }
+
+    // Function to populate Patent Fees Table
+    function populatePatentFeesTable(tableBodyElement) {
+        if (patentFeesTablePopulated) return;
+        if (!tableBodyElement) { console.error("Patent Fees Table Body element not provided."); return; }
+        const patentFeesTableData = [
+            { feeType: "Filing Fee (up to 5 claims)", directSmall: fees.patent.prosecution.direct.small.filing, directBig: fees.patent.prosecution.direct.big.filing, pctSmall: fees.patent.prosecution.pct.small.filing, pctBig: fees.patent.prosecution.pct.big },
+            { feeType: "Claims in Excess of 5 (per claim)", directSmall: fees.patent.prosecution.direct.small.excessClaim, directBig: fees.patent.prosecution.direct.big.excessClaim, pctSmall: fees.patent.prosecution.pct.small.excessClaim, pctBig: fees.patent.prosecution.pct.big.excessClaim },
+            { feeType: "Publication Fee", directSmall: fees.patent.prosecution.direct.small.publication, directBig: fees.patent.prosecution.direct.big.publication, pctSmall: "Included", pctBig: "Included" },
+            { feeType: "Substantive Examination Fee", directSmall: fees.patent.prosecution.direct.small.examination, directBig: fees.patent.prosecution.direct.big.examination, pctSmall: fees.patent.prosecution.pct.small.examination, pctBig: fees.patent.prosecution.pct.big.examination },
+            { feeType: "Issuance of Certificate", directSmall: fees.patent.prosecution.direct.small.issuance, directBig: fees.patent.prosecution.direct.big.issuance, pctSmall: fees.patent.prosecution.pct.small.issuance, pctBig: fees.patent.prosecution.pct.big.issuance },
+            { feeType: "Priority Claim Fee (per claim)", directSmall: fees.patent.prosecution.direct.small.priorityClaim, directBig: fees.patent.prosecution.direct.big.priorityClaim, pctSmall: fees.patent.prosecution.pct.small.priorityClaim, pctBig: fees.patent.prosecution.pct.big.priorityClaim }
+        ];
+        tableBodyElement.innerHTML = ''; // Clear existing rows before populating
+        patentFeesTableData.forEach(item => {
+            const row = tableBodyElement.insertRow();
+            row.insertCell().textContent = item.feeType;
+            row.insertCell().textContent = (typeof item.directSmall === 'number') ? item.directSmall.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : item.directSmall;
+            row.insertCell().textContent = (typeof item.directBig === 'number') ? item.directBig.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : item.directBig;
+            row.insertCell().textContent = (typeof item.pctSmall === 'string') ? item.pctSmall : item.pctSmall.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            row.insertCell().textContent = (typeof item.pctBig === 'string') ? item.pctBig : item.pctBig.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        });
+        patentFeesTablePopulated = true;
+    }
+
+    // Function to initialize Patent Maintenance Chart
+    function initPatentMaintenanceChart(canvasElement) {
+        if (patentMaintenanceChartInstance) return;
+        if (!canvasElement) { console.error("Patent Maintenance Chart canvas element not provided."); return; }
+        const patentMaintenanceYears = Array.from({length: 16}, (_, i) => i + 5); // 5th to 20th year
+        const patentMaintenanceSmallEntityFees = fees.patent.maintenance.small.slice(4);
+        const patentMaintenanceBigEntityFees = fees.patent.maintenance.big.slice(4);
+
+        patentMaintenanceChartInstance = new Chart(canvasElement, {
+            type: 'line',
+            data: {
+                labels: patentMaintenanceYears.map(y => `${y}th year`),
+                datasets: [
+                    {
+                        label: 'Small Entity',
+                        data: patentMaintenanceSmallEntityFees,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Big Entity',
+                        data: patentMaintenanceBigEntityFees,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { callback: value => `₱${value}` } } },
+                plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}: ₱${context.parsed.y}` } } }
+            }
+        });
+    }
+
+    // Function to populate Patent Maintenance Table
+    function populatePatentMaintenanceTable(tableBodyElement) {
+        if (patentMaintenanceTablePopulated) return;
+        if (!tableBodyElement) { console.error("Patent Maintenance Table Body element not provided."); return; }
+        const patentMaintenanceYears = Array.from({length: 16}, (_, i) => i + 5); // 5th to 20th year
+        const patentMaintenanceSmallEntityFees = fees.patent.maintenance.small.slice(4);
+        const patentMaintenanceBigEntityFees = fees.patent.maintenance.big.slice(4);
+
+        tableBodyElement.innerHTML = ''; // Clear existing rows before populating
+        patentMaintenanceYears.forEach((year, index) => {
+            const row = tableBodyElement.insertRow();
+            row.insertCell().textContent = `${year}th year`;
+            row.insertCell().textContent = patentMaintenanceSmallEntityFees[index].toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            row.insertCell().textContent = patentMaintenanceBigEntityFees[index].toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        });
+        patentMaintenanceTablePopulated = true;
+    }
+
+    // Function to initialize Industrial Design Renewal Chart
+    function initIdRenewalChart(canvasElement) {
+        if (idRenewalChartInstance) return;
+        if (!canvasElement) { console.error("Industrial Design Renewal Chart canvas element not provided."); return; }
+        idRenewalChartInstance = new Chart(canvasElement, {
+            type: 'bar',
+            data: {
+                labels: ['1st Extension (Y5-10)', '2nd Extension (Y10-15)'],
+                datasets: [
+                    {
+                        label: 'Small Entity',
+                        data: [fees.industrialDesign['1st-extension'].small.baseFee, fees.industrialDesign['2nd-extension'].small.baseFee], // Use baseFee
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Big Entity',
+                        data: [fees.industrialDesign['1st-extension'].big.baseFee, fees.industrialDesign['2nd-extension'].big.baseFee], // Use baseFee
+                        backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { callback: value => `₱${value}` } } },
+                plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}: ₱${context.parsed.y}` } } }
+            }
+        });
+    }
+
+    // Function to populate Industrial Design Renewal Table
+    function populateIdRenewalTable(tableBodyElement) {
+        if (idRenewalTablePopulated) return;
+        if (!tableBodyElement) { console.error("Industrial Design Renewal Table Body element not provided."); return; }
+        const idRenewalTableData = [
+            { period: "1st Extension of Term (Years 5-10)", small: fees.industrialDesign['1st-extension'].small.baseFee, big: fees.industrialDesign['1st-extension'].big.baseFee },
+            { period: "2nd Extension of Term (Years 10-15)", small: fees.industrialDesign['2nd-extension'].small.baseFee, big: fees.industrialDesign['2nd-extension'].big.baseFee }
+        ];
+        tableBodyElement.innerHTML = ''; // Clear existing rows before populating
+        idRenewalTableData.forEach(item => {
+            const row = tableBodyElement.insertRow();
+            row.insertCell().textContent = item.period;
+            row.insertCell().textContent = item.small.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            row.insertCell().textContent = item.big.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        });
+        idRenewalTablePopulated = true;
+    }
+
+
+    function showSection(targetId) {
+        contentSections.forEach(section => {
+            section.classList.remove('active');
+        });
+        const targetSection = document.getElementById(targetId);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            setActiveLink(targetId);
+            window.scrollTo(0, 0);
+
+            if (targetId === 'foundations') {
+                const comparisonTableBody = document.getElementById('ipComparisonTable').querySelector('tbody');
+                populateIpComparisonTable(comparisonTableBody);
+            } else if (targetId === 'maintenance') {
+                const patentMaintenanceCanvas = document.getElementById('patentMaintenanceFeesChart');
+                const patentMaintenanceTableBody = document.getElementById('patentMaintenanceTableBody');
+                const idRenewalCanvas = document.getElementById('idRenewalFeesChart');
+                const idRenewalTableBody = document.getElementById('idRenewalTableBody');
+
+                initPatentMaintenanceChart(patentMaintenanceCanvas);
+                populatePatentMaintenanceTable(patentMaintenanceTableBody);
+                initIdRenewalChart(idRenewalCanvas);
+                populateIdRenewalTable(idRenewalTableBody);
+            } else if (targetId === 'calculator') {
+                updateCalculatorVisibility();
+                // Ensure rates are fetched and applied when calculator is in view
+                if (!currencyRatesFetched) {
+                    fetchAndApplyExchangeRates();
+                }
+            } else if (targetId === 'invention') { // Invention section
+                const patentProsecutionCanvas = document.getElementById('patentProsecutionFeesChart');
+                const patentFeesTableBody = document.getElementById('patentFeesTableBody');
+                initPatentProsecutionChart(patentProsecutionCanvas);
+                populatePatentFeesTable(patentFeesTableBody);
+            }
+        }
+    }
+
+    // Function to fetch exchange rates from API
+    async function fetchAndApplyExchangeRates() {
+        if (!rateStatus) { // Defensive check for rateStatus itself
+            console.error("rateStatus element not found.");
+            return;
+        }
+        rateStatus.textContent = 'Fetching latest rates...';
+        try {
+            const response = await fetch('https://open.er-api.com/v6/latest/PHP');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            if (data.rates && data.rates.USD && data.rates.EUR && data.rates.JPY) {
+                exchangeRates['PHP'] = 1; // Base currency is PHP
+                exchangeRates['USD'] = data.rates.USD;
+                exchangeRates['EUR'] = data.rates.EUR;
+                exchangeRates['JPY'] = data.rates.JPY;
+                
+                lastUpdateDate = new Date(data.time_last_update_unix * 1000).toLocaleDateString();
+                currencyRatesFetched = true;
+            } else {
+                throw new Error('API response missing required rates (USD, EUR, JPY).');
+            }
+        } catch (error) {
+            console.error("Error fetching exchange rates:", error);
+            rateStatus.textContent = 'Failed to fetch latest rates. Using approximate values.';
+            currencyRatesFetched = false; // Keep flag false if fetch failed
+        } finally {
+            calculateFee(); // Always recalculate fees after attempt
+        }
+    }
+
+    // Moved outside DOMContentLoaded to be globally accessible for `calculateFee`
+    // and `updateCalculatorVisibility` functions before DOMContentLoaded fires.
+    // These are constants that don't change.
+    const currencySymbols = {
+        'PHP': '₱',
+        'USD': '$',
+        'EUR': '€',
+        'JPY': '¥'
+    };
+
+    function updateCalculatorVisibility() {
+        // Ensure all elements are initialized before accessing them
+        // This function is called within DOMContentLoaded, so elements should exist.
+        // However, defensive checks are good practice.
+
+        const selectedIpType = document.querySelector('input[name="ipType"]:checked').value;
+        const selectedPatentFeeType = document.querySelector('input[name="patentFeeType"]:checked').value;
+
+        if (ipTypeDescription) ipTypeDescription.textContent = ipDescriptions[selectedIpType];
+
+        if (patentOptionsDiv) patentOptionsDiv.classList.add('hidden');
+        if (utilityModelOptionsDiv) utilityModelOptionsDiv.classList.add('hidden');
+        if (industrialDesignOptionsDiv) industrialDesignOptionsDiv.classList.add('hidden');
+        
+        // Hide all specific options by default
+        if (priorityClaimsInputGroup) priorityClaimsInputGroup.classList.add('hidden'); 
+        if (includeExaminationFeeOption) includeExaminationFeeOption.classList.add('hidden'); 
+        if (includeIssuanceAndPublicationFeesOption) includeIssuanceAndPublicationFeesOption.classList.add('hidden'); 
+        if (excessPagesInputGroup) excessPagesInputGroup.classList.add('hidden');
+        if (umIncludeIssuanceAndPublicationFeesOption) umIncludeIssuanceAndPublicationFeesOption.classList.add('hidden'); 
+        if (idIncludeIssuanceAndPublicationFeesOption) idIncludeIssuanceAndPublicationFeesOption.classList.add('hidden'); 
+
+        // Industrial Design specific inputs
+        const idEmbodimentsInputGroup = document.getElementById('id-embodiments-input-group');
+        if (idEmbodimentsInputGroup) idEmbodimentsInputGroup.classList.add('hidden');
+        
+        const idPriorityClaimsInputGroup = document.getElementById('id-priority-claims-input-group');
+        if (idPriorityClaimsInputGroup) idPriorityClaimsInputGroup.classList.add('hidden');
+
+        const idExcessPagesInputGroup = document.getElementById('id-excess-pages-input-group');
+        if (idExcessPagesInputGroup) idExcessPagesInputGroup.classList.add('hidden');
+
+        // Patent maintenance late payment option
+        if (patentLatePaymentOption) patentLatePaymentOption.classList.add('hidden');
+
+
+        if (selectedIpType.startsWith('invention-patent')) {
+            if (patentOptionsDiv) patentOptionsDiv.classList.remove('hidden');
+            if (selectedPatentFeeType === 'prosecution') {
+                if (patentProsecutionInputsDiv) patentProsecutionInputsDiv.classList.remove('hidden');
+                if (patentMaintenanceInputsDiv) patentMaintenanceInputsDiv.classList.add('hidden');
+                if (priorityClaimsInputGroup) priorityClaimsInputGroup.classList.remove('hidden');
+                if (includeIssuanceAndPublicationFeesOption) includeIssuanceAndPublicationFeesOption.classList.remove('hidden'); 
+                if (excessPagesInputGroup) excessPagesInputGroup.classList.remove('hidden');
+                
+                // Examination fee checkbox visibility and label/state based on route
+                if (includeExaminationFeeOption) includeExaminationFeeOption.classList.remove('hidden');
+                if (selectedIpType === 'invention-patent-direct') {
+                    if (includeExaminationFeeLabel) includeExaminationFeeFee (from 5th to 17th year, per claim)** | 210.00 [66] | 420.00 [66] |
+
+*Note: All fees are subject to a 1% Legal Research Fund (LRF).[65, 69, 71]*
+
+* **B. Utility Models**
+
+    * **1. Term of Protection: Seven Years (Non-Renewable)**
+        A utility model registration in the Philippines provides protection for a fixed term of seven (7) years from the date of the filing of the application.[49, 77, 64, 72, 76, 80] Critically, this protection is **non-renewable**.[49, 77, 64, 72, 76] Once the seven-year period expires, the utility model enters the public domain, becoming freely available for public use without restriction.[49]
+
+    * **2. Absence of Annual Maintenance Fees**
+        Unlike invention patents, utility models in the Philippines do not require the payment of annual maintenance fees to keep the registration in force.[65, 69] The provided fee schedules for utility models primarily list pre-examination, examination, and issuance fees, with no mention of recurring annual payments.[65, 69] This simplified maintenance regime further reinforces the utility model's role as a quick and cost-effective protection mechanism for minor innovations, reducing the ongoing administrative and financial burden on the registrant. This design aligns with the typically shorter commercial lifespan or more localized market for incremental improvements, making it a practical choice for innovators seeking a less demanding IP asset.
+
+* **C. Industrial Designs**
+
+    * **1. Term of Protection: Initial Five Years and Renewal Periods (Up to 15 Years)**
+        An industrial design registration in the Philippines is initially valid for a period of five (5) years from the filing date of the application.[49, 7, 75, 80, 82, 83] This protection is not fixed like utility models or patents but offers flexibility through renewal. The registration may be renewed for two (2) additional consecutive periods of five (5) years each, allowing for a maximum total protection period of 15 years.[49, 7, 75, 80, 82, 83] This renewable nature of industrial design protection provides significant strategic advantages for designers. It allows them to extend protection based on the ongoing market relevance and commercial viability of their aesthetic creations. This contrasts with the fixed terms of patents and utility models, acknowledging the often cyclical or trend-driven nature of aesthetic designs, where sustained protection is only pursued if the design continues to hold commercial value.
+
+    * **2. Renewal Process: Timelines, Fees, and Grace Periods**
+        To renew an industrial design registration, the renewal fee must be paid within 12 months preceding the expiration of the current registration period.[83] A grace period of six (6) months after the expiration date is permitted for late renewals, subject to the payment of a surcharge.[83, 98] Specific fees apply for the first and second extensions of the term.[66, 68, 69, 86]
+
+    * **3. Consequences of Non-Renewal**
+        Failure to renew an industrial design registration within the prescribed period, including the grace period, will result in the lapse of the design rights.[98] Once lapsed, the industrial design enters the public domain, and its aesthetic features become free for public use without the need for authorization from the original registrant.[49]
+
+* **Table 4: Industrial Design Renewal Fees**
+    This table outlines the estimated government fees for renewing an industrial design registration in the Philippines, covering the two possible extension periods. These fees are essential for planning the long-term maintenance of industrial design rights.
+
+| Renewal Period | Small Entity (PHP) | Big Entity (PHP) |
+| :--- | :--- | :--- |
+| **1st Extension of Term (Years 5-10)** | 1,030.00 [66, 69] | 2,160.00 [66, 69] |
+| **2nd Extension of Term (Years 10-15)** | 2,000.00 [66, 69] | 4,320.00 [66, 69] |
+
+*Note: All fees are subject to a 1% Legal Research Fund (LRF).[65, 69, 71] A surcharge applies for renewals made during the grace period.[83, 98]*
+
+**Conclusion**
+
+The Philippine intellectual property system, as governed by the IP Code, provides a comprehensive yet nuanced framework for protecting inventions, utility models, and industrial designs. Its evolution from colonial influences to a modern, internationally aligned system reflects a strategic commitment to fostering innovation and economic growth while balancing private rights with public welfare.
+
+* **Summary of Key Procedural and Maintenance Aspects:**
+    The prosecution paths for different IP types are tailored to their distinct characteristics. Invention patents require rigorous substantive examination, reflecting their higher inventive threshold, and are protected for a non-renewable 20-year term, maintained by annual fees. Utility models offer a faster, less burdensome registration process due to the absence of an inventive step requirement and substantive examination, with a fixed 7-year non-renewable term and no annual fees. Industrial designs, protecting aesthetic creations, undergo formal examination and are subject to a formal pre-grant opposition period, with an initial 5-year term renewable twice for a total of 15 years, requiring renewal fees for each extension. The "first-to-file" rule governs all three, prioritizing filing speed and promoting international harmonization. Furthermore, IPOPHL's role as an ISA/IPEA and its embrace of digital filing and tiered fee structures demonstrate a commitment to streamlining processes and supporting diverse innovators, particularly small entities.
+
+* **Strategic Recommendations for IP Portfolio Management in the Philippines:**
+    For entities navigating the Philippine IP landscape, several strategic considerations are paramount:
+    1.  **Early Filing:** Given the "first-to-file" rule, prioritizing the earliest possible filing date for all inventions, utility models, and industrial designs is crucial to secure priority rights and mitigate risks from competing applications or prior disclosures.
+    2.  **Strategic Route Selection:** A thorough understanding of the distinct criteria and prosecution processes for patents, utility models, and industrial designs is essential. Innovators should carefully assess whether their creation warrants the broader, longer protection of an invention patent, the expedited, simpler protection of a utility model for incremental improvements, or the aesthetic-focused protection of an industrial design.
+    3.  **Diligent Maintenance:** Post-grant obligations, particularly annual fees for patents and renewal fees for industrial designs, must be meticulously managed to prevent inadvertent lapse of rights. Establishing robust internal tracking systems or engaging specialized IP counsel for portfolio management is advisable.
+    4.  **Leveraging International Mechanisms:** For innovations with international market potential, utilizing the PCT system for patents offers a streamlined approach to seeking protection in the Philippines and other member states.
+    5.  **Monitoring and Engagement:** Proactively monitoring published applications (for patents, utility models, and industrial designs) and engaging in the third-party observation or formal opposition processes can be a cost-effective strategy to challenge potentially invalid IP rights of competitors.
+    6.  **Understanding the "Social Function" Aspect:** Entities, especially in critical sectors like pharmaceuticals, should be aware of the "social function" principle embedded in Philippine IP law, particularly provisions related to compulsory licensing, which prioritize public interest under specific circumstances.
+
+By understanding and strategically navigating the intricacies of the Philippine IP system, innovators and businesses can effectively protect their creations, foster further innovation, and contribute to national development.
+
+**Footnotes**
+
+1.  Aumento Law. (n.d.). *Patent Law Philippines*. Retrieved from [https://www.aumentolaw.com.ph/patent-law-philippines/](https://www.aumentolaw.com.ph/patent-law-philippines/)
+2.  Aumento Law. (n.d.). *What are the grounds for patent cancellation and remedies for infringement in the Philippines?*. Retrieved from [https://www.aumentolaw.com.ph/patent-law-philippines/](https://www.aumentolaw.com.ph/patent-law-philippines/)
+3.  Bañez, E. S. (2021). Philippine Copyright Law. *Asian Comparative Law*, *1*, 69–80. Retrieved from [https://law.upd.edu.ph/wp-content/uploads/2021/07/Asian-Comparative-Law-Volume-1-pages-69-80.pdf](https://law.upd.edu.ph/wp-content/uploads/2021/07/Asian-Comparative-Law-Volume-1-pages-69-80.pdf)
+4.  BusinessMirror. (2022, July 27). *Patent Infringement*. Retrieved from [https://businessmirror.com.ph/2022/07/27/patent-infringement/](https://businessmirror.com.ph/2022/07/27/patent-infringement/)
+5.  CadCrowd. (n.d.). *A Brief History of Patents: Patent Law Past and Present*. Retrieved from [https://www.cadcrowd.com/blog/a-brief-history-of-patents-patent-law-past-and-present/](https://www.cadcrowd.com/blog/a-brief-history-of-patents-patent-law-past-and-present/)(https://www.cadcrowd.com/blog/a-brief-history-of-patents-patent-law-past-and-present/)
+6.  Chan Robles Virtual Law Library. (n.d.). *Act No. 2235*. Retrieved from [https://lawphil.net/statutes/acts/act1913/act_2235_1913.html](https://lawphil.net/statutes/acts/act1913/act_2235_1913.html)
+7.  Chan Robles Virtual Law Library. (n.d.). *History of the Intellectual Property System*. Retrieved from [https://chanrobles.com/legal7history.htm](https://chanrobles.com/legal7history.htm)
+8.  Chan Robles Virtual Law Library. (n.d.). *Intellectual Property Code of the Philippines (RA 8293)*. Retrieved from [https://chanrobles.com/legal7code.htm](https://chanrobles.com/legal7code.htm)
+9.  Chambers and Partners. (2025, May 21). *Patent Litigation 2025 - Comparisons | Global Practice Guides*. Retrieved from [https://practiceguides.chambers.com/practice-guides/comparison/937/15368/23950-23951-23952-23953-23954-23959-23964-23967-23971-23973](https://practiceguides.chambers.com/practice-guides/comparison/937/15368/23950-23951-23952-23953-23954-23959-23964-23967-23971-23973)
+10. Cruz Marcelo & Tenefrancia. (n.d.). *A Guide to Determining Patent Infringement: Phillips Seafood Philippines Corp. vs. Tuna Processors, Inc.*. Retrieved from [https://cruzmarcelo.com/a-guide-to-determining-patent-infringement-phillips-seafood-philippines-corp-vs-tuna-processors-inc/](https://cruzmarcelo.com/a-guide-to-determining-patent-infringement-phillips-seafood-philippines-corp-vs-tuna-processors-inc/)
+11. De La Salle University. (n.d.). *Institutional Impact of Spanish Rule in the Philippines*. Retrieved from [https://www.slideshare.net/slideshow/institutional-impact-of-spanish-rule-in-the-philippines/251357510](https://www.slideshare.net/slideshow/institutional-impact-of-spanish-rule-in-the-philippines/251357510)
+12. De La Salle University. (n.d.). *History of Science and Technology in the Philippines*. Retrieved from [https://www.slideshare.net/slideshow/history-of-science-and-technology-in-the-philippines-046b/266452024](https://www.slideshare.net/slideshow/history-of-science-and-technology-in-the-philippines-046b/266452024)
+13. De La Salle University. (n.d.). *Intellectual Property Law (Patents and Copyrights) and the Sustainability of Business and Economy*. Retrieved from [https://animorepository.dlsu.edu.ph/cgi/viewcontent.cgi?article=1001&context=apipmibookseries](https://animorepository.dlsu.edu.ph/cgi/viewcontent.cgi?article=1001&context=apipmibookseries)
+14. Digest.ph. (n.d.). *Decree on the Protection of Intellectual Property*. Retrieved from [https://www.digest.ph/laws/decree-on-the-protection-of-intellectual-property](https://www.digest.ph/laws/decree-on-the-protection-of-intellectual-property)
+15. Digest.ph. (n.d.). *Republic Act No. 166: An Act to Provide for the Registration and Protection of Trade-Marks*. Retrieved from [https://www.digest.ph/laws/an-act-to-provide-for-the-registration-and-protection-of-trade-marks?tab=summary](https://www.digest.ph/laws/an-act-to-provide-for-the-registration-and-protection-of-trade-marks?tab=summary)
+16. Digest.ph. (n.d.). *The Patent Law*. Retrieved from [https://jur.ph/law/summary/the-patent-law](https://jur.ph/law/summary/the-patent-law)
+17. Federis Law. (n.d.). *FAQs & Resources: Patent PCT Philippines*. Retrieved from [https://www.federislaw.com.ph/faqs-resources/patent-pct-philippines/](https://www.federislaw.com.ph/faqs-resources/patent-pct-philippines/)
+18. Federis Law. (n.d.). *FAQs & Resources: Patent Application*. Retrieved from [https://www.federislaw.com.ph/faqs-resources/patent-application/](https://www.federislaw.com.ph/faqs-resources/patent-application/)
+19. Federis Law. (n.d.). *IPOPHL Revised Fee Structure 2017*. Retrieved from [https://www.federislaw.com.ph/ipophl-revised-fee-structure-2017/](https://www.federislaw.com.ph/ipophl-revised-fee-structure-2017/)
+20. Federis Law. (n.d.). *Trademark Opposition*. Retrieved from [https://www.federislaw.com.ph/faqs-resources/trademark-opposition/](https://www.federislaw.com.ph/faqs-resources/trademark-opposition/)
+21. Federis Law. (2014, October 2). *Steven D. Young vs. Director of the Bureau of Patents*. Retrieved from [https://www.federislaw.com.ph/wp-content/uploads/2014/12/STEVEN-D.-YOUNG-VS.-DIRECTOR-OF-THE-BUREAU-OF-PATENTS-Appeal-No.-01-2013-0004-October-02-2014.pdf](https://www.federislaw.com.ph/wp-content/uploads/2014/12/STEVEN-D.-YOUNG-VS.-DIRECTOR-OF-THE-BUREAU-OF-PATENTS-Appeal-No.-01-2013-0004-October-02-2014.pdf)
+22. FFTC Agricultural Policy Platform (FFTC-AP). (n.d.). *Republic Act 8293: Protecting the Intellectual Property in the Philippines*. Retrieved from [https://ap.fftc.org.tw/article/531](https://ap.fftc.org.tw/article/531)
+23. FPA Patents. (n.d.). *Services: Southeast Asia / The Philippines*. Retrieved from [https://www.fpapatents.com/services/southeast-asia/the-philippines/](https://www.fpapatents.com/services/southeast-asia/the-philippines/)
+24. ICLG. (n.d.). *Patents Laws and Regulations: Philippines*. Retrieved from [https://iclg.com/practice-areas/patents-laws-and-regulations/philippines](https://iclg.com/practice-areas/patents-laws-and-regulations/philippines)
+25. IFIA. (n.d.). *World Wide Priority*. Retrieved from [https://ifia.com/world-wide-priority/](https://ifia.com/world-wide-priority/)
+26. Intellectual Property Office of the Philippines. (n.d.). *Help and Support: Industrial Design*. Retrieved from [https://www.ipophil.gov.ph/help-and-support/industrial-design/](https://www.ipophil.gov.ph/help-and-support/industrial-design/)
+27. Intellectual Property Office of the Philippines. (n.d.). *Help and Support: National Phase Patent Cooperation Treaty FAQ*. Retrieved from [https://www.ipophil.gov.ph/help-and-support/national-phase-patent-cooperation-treaty-faq/](https://www.ipophil.gov.ph/help-and-support/national-phase-patent-cooperation-treaty-faq/)
+28. Intellectual Property Office of the Philippines. (n.d.). *How to File for a Patent Grant*. Retrieved from [https://www.ipophil.gov.ph/how-to-file-for-patent-grant/](https://www.ipophil.gov.ph/how-to-file-for-patent-grant/)
+29. Intellectual Property Office of the Philippines. (n.d.). *How to File for a Utility Model*. Retrieved from [https://www.ipophil.gov.ph/how-to-file-for-um/](https://www.ipophil.gov.ph/how-to-file-for-um/)
+30. Intellectual Property Office of the Philippines. (n.d.). *Intellectual Property Rights Enforcement Office (IEO)*. Retrieved from [https://www.ipophil.gov.ph/intellectual-property-rights-enforcement-office-ieo/](https://www.ipophil.gov.ph/intellectual-property-rights-enforcement-office-ieo/)
+31. Intellectual Property Office of the Philippines. (n.d.). *Legal Proceedings: Notice of Publication*. Retrieved from [https://www.ipophil.gov.ph/legal-proceedings-notice-of-publication/](https://www.ipophil.gov.ph/legal-proceedings-notice-of-publication/)
+32. Intellectual Property Office of the Philippines. (n.d.). *Patent*. Retrieved from [https://www.ipophil.gov.ph/patent/](https://www.ipophil.gov.ph/patent/)
+33. Intellectual Property Office of the Philippines. (n.d.). *Patent Maintenance*. Retrieved from [https://www.ipophil.gov.ph/patent/patent-maintenance/](https://www.ipophil.gov.ph/patent/patent-maintenance/)
+34. Intellectual Property Office of the Philippines. (n.d.). *Schedule of Fees: General and Other Fees*. Retrieved from [https://www.ipophil.gov.ph/services/schedule-of-fees/general-and-other-fees/](https://www.ipophil.gov.ph/services/schedule-of-fees/general-and-other-fees/)
+35. Intellectual Property Office of the Philippines. (n.d.). *Schedule of Fees: Patent-Related Fees*. Retrieved from [https://www.ipophil.gov.ph/services/schedule-of-fees/patent-related-fees/](https://www.ipophil.gov.ph/services/schedule-of-fees/patent-related-fees/)
+36. Intellectual Property Office of the Philippines. (n.d.). *Schedule of Fees: Utility Model & Industrial Design*. Retrieved from [https://www.ipophil.gov.ph/services/schedule-of-fees/utility-model-industrial-design/](https://www.ipophil.gov.ph/services/schedule-of-fees/utility-model-industrial-design/)
+37. Intellectual Property Office of the Philippines. (n.d.). *Services: IP Adjudication / Adjudication Filing Requirements & Fees*. Retrieved from [https://www.ipophil.gov.ph/services/ip-adjudication/adjudication-filingreqs-fees/](https://www.ipophil.gov.ph/services/ip-adjudication/adjudication-filingreqs-fees/)
+38. Intellectual Property Office of the Philippines. (n.d.). *The Intellectual Property System: A Brief History*. Retrieved from [https://www.ipophil.gov.ph/news/the-intellectual-property-system-a-brief-history/](https://www.ipophil.gov.ph/news/the-intellectual-property-system-a-brief-history/)
+39. Intellectual Property Office of the Philippines. (n.d.). *Trademark Maintenance*. Retrieved from [https://www.ipophil.gov.ph/trademark/trademark-maintenance/](https://www.ipophil.gov.ph/trademark/trademark-maintenance/)
+40. Intellectual Property Office of the Philippines. (n.d.). *Utility Model Filing*. Retrieved from [https://www.ipophil.gov.ph/utility-model-filing/](https://www.ipophil.gov.ph/utility-model-filing/)
+41. IP-Coster. (n.d.). *Design Renewal*. Retrieved from [https://www.ip-coster.com/academy/details/design_renewal](https://www.ip-coster.com/academy/details/design_renewal)
+42. IP-Coster. (n.d.). *Patent Philippines*. Retrieved from [https://www.ip-coster.com/IPGuides/patent-philippines](https://www.ip-coster.com/IPGuides/patent-philippines)
+43. iPNOTE. (n.d.). *Design Registration in the Philippines: Exploring Costs and Benefits*. Retrieved from [https://ipnote.pro/en/blog/design-registration-in-the-philippines-exploring-costs-and-benefits/](https://ipnote.pro/en/blog/design-registration-in-the-philippines-exploring-costs-and-benefits/)
+44. iPNOTE. (n.d.). *Patent Registration in the Philippines: A Comprehensive Guide*. Retrieved from [https://ipnote.pro/en/blog/patent-registration-in-the-philippines-a-comprehensive-guide/](https://ipnote.pro/en/blog/patent-registration-in-the-philippines-a-comprehensive-guide/)
+45. iPNOTE. (n.d.). *Trademark Registration in the Philippines: Navigating the Grounds for Refusal and Maximizing Success with Expert Legal Guidance*. Retrieved from [https://www.trademark.net.ph/blog/trademark-registration-in-the-philippines-navigating-the-grounds-for-refusal-and-maximizing-success-with-expert-legal-guidance](https://www.trademark.net.ph/blog/trademark-registration-in-the-philippines-navigating-the-grounds-for-refusal-and-maximizing-success-with-expert-legal-guidance)
+46. JETRO. (n.d.). *Revised Implementing Rules and Regulations for Patents, Utility Models, and Industrial Designs*. Retrieved from [https://www.jetro.go.jp/ext_images/world/asia/ph/ip/pdf/philippines-tizai_kisoku_en.pdf](https://www.jetro.go.jp/ext_images/world/asia/ph/ip/pdf/philippines-tizai_kisoku_en.pdf)
+47. Judiciary.gov.ph. (n.d.). *ABS-CBN Corporation vs. GMA Network, Inc.*. Retrieved from [https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/22/60524](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/22/60524)
+48. Judiciary.gov.ph. (n.d.). *Phil Pharmawealth, Inc. vs. Pfizer, Inc.*. Retrieved from [https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/35601](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/35601)
+49. Judiciary.gov.ph. (n.d.). *Phillips Seafood Philippines Corporation vs. Tuna Processors, Inc.*. Retrieved from [https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/69243](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/1/69243)
+50. Judiciary.gov.ph. (n.d.). *Presidential Decree No. 1073*. Retrieved from [https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/26/54008](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/26/54008)
+51. Judiciary.gov.ph. (n.d.). *Presidential Decree No. 1263*. Retrieved from [https://lawphil.net/statutes/presdecs/pd1977/pd_1263_1977.html](https://lawphil.net/statutes/presdecs/pd1977/pd_1263_1977.html)
+52. Judiciary.gov.ph. (n.d.). *Smith Kline Beckman Corporation vs. The Honorable Court of Appeals and Tryco Pharma Corporation*. Retrieved from [https://www.wipo.int/wipolex/en/text/592642](https://www.wipo.int/wipolex/en/text/592642)
+53. Judiciary.gov.ph. (n.d.). *The Revised Rules and Regulations on Inter Partes Proceedings*. Retrieved from [http://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/45811](http://elibrary.judiciary.gov.ph/thebookshelf/showdocs/10/45811)
+54. Jur.ph. (n.d.). *Copyright Law of the Philippine Islands*. Retrieved from [https://jur.ph/law/summary/copyright-law-of-the-philippine-islands](https://jur.ph/law/summary/copyright-law-of-the-philippine-islands)
+55. Jur.ph. (n.d.). *Intellectual Property Code Office Establishment*. Retrieved from [https://jur.ph/law/summary/intellectual-property-code-office-establishment](https://jur.ph/law/summary/intellectual-property-code-office-establishment)
+56. Jur.ph. (n.d.). *Proper Scope in the Implementation of P.D. No. 1263*. Retrieved from [https://jur.ph/law/summary/proper-scope-in-the-implementation-of-p-d-no-1263](https://jur.ph/law/summary/proper-scope-in-the-implementation-of-p-d-no-1263)
+57. Law.asia. (n.d.). *Protecting Intellectual Property in the Philippines*. Retrieved from [https://law.asia/protecting-intellectual-property-philippines/](https://law.asia/protecting-intellectual-property-philippines/)
+58. Law.asia. (n.d.). *Revised IRR for Patents, Utility Models, and Designs*. Retrieved from [https://law.asia/revised-irr-for-patents-utility-models-and-designs/](https://law.asia/revised-irr-for-patents-utility-models-and-designs/)(https://law.asia/revised-irr-for-patents-utility-models-and-designs/)
+59. Law.asia. (n.d.). *Third-Party Observations in Industrial Designs*. Retrieved from [https://asiaiplaw.com/article/third-party-observations-in-industrial-designs](https://asiaiplaw.com/article/third-party-observations-in-industrial-designs)
+60. Lawphil.net. (n.d.). *Act No. 2235*. Retrieved from [https://lawphil.net/statutes/acts/act1913/act_2235_1913.html](https://lawphil.net/statutes/acts/act1913/act_2235_1913.html)
+61. Lawphil.net. (n.d.). *Republic Act No. 8293*. Retrieved from [https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html](https://lawphil.net/statutes/repacts/ra1997/ra_8293_1997.html)
+62. Lawphil.net. (n.d.). *Republic Act No. 3850*. Retrieved from [https://lawphil.net/statutes/repacts/ra1964/ra_3850_1964.html](https://lawphil.net/statutes/repacts/ra1964/ra_3850_1964.html)
+63. Lawphil.net. (n.d.). *The Patent Law (Act No. 3134)*. Retrieved from [https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/11/34296](https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/11/34296)
+64. Liesegang-Partner. (n.d.). *Renewal Industrial Design Philippines*. Retrieved from [https://shop.liesegang-partner.com/renewal-industrial-design-philippines.html](https://shop.liesegang-partner.com/renewal-industrial-design-philippines.html)
+65. Maharlikans Organization. (2017, February 6). *Torrens System Re-Registration of Spanish Titles*. Retrieved from [http://maharlikansorganization.blogspot.com/2017/02/torrens-system-re-registration-of.html](http://maharlikansorganization.blogspot.com/2017/02/torrens-system-re-registration-of.html)
+66. Managing IP. (2021, September 23). *How to protect your industrial design in the Philippines*. Retrieved from [https://www.managingip.com/article/2a5bqtj8ume32iwlaoxzz/how-to-protect-your-industrial-design-in-the-philippines](https://www.managingip.com/article/2a5bqtj8ume32iwlaoxzz/how-to-protect-your-industrial-design-in-the-philippines)
+67. Mirandah Asia. (n.d.). *Philippines Patent System*. Retrieved from [http://www.mirandah.com/patent-system/philippines/](http://www.mirandah.com/patent-system/philippines/)
+68. Mirandah Asia. (n.d.). *Case Notes: Phil Pharmawealth v. Pfizer*. Retrieved from [https://www.mirandah.com/255-case-notesphil-pharmawealth-vpfizer/](https://www.mirandah.com/255-case-notesphil-pharmawealth-vpfizer/)
+69. NDV Law. (n.d.). *Philippine Utility Model*. Retrieved from [https://ndvlaw.com/philippine-utility-model/](https://ndvlaw.com/philippine-utility-model/)
+70. Oxford Research Encyclopedias. (n.d.). *Postcolonial Philosophies of Education in the Philippines*. Retrieved from [https://oxfordre.com/education/display/10.1093/acrefore/9780190264093.001.0001/acrefore-9780190264093-e-1575?d=%2F10.1093%2Facrefore%2F9780190264093.001.0001%2Facrefore-9780190264093-e-1575&p=emailAGWpcjfdp4uYA](https://oxfordre.com/education/display/10.1093/acrefore/9780190264093.001.0001/acrefore-9780190264093-e-1575?d=%2F10.1093%2Facrefore%2F9780190264093.001.0001%2Facrefore-9780190264093-e-1575&p=emailAGWpcjfdp4uYA)
+71. Ponce Law. (n.d.). *Patent Registration in the Philippines*. Retrieved from [https://poncelaw.com.ph/faqs-for-patent/](https://poncelaw.com.ph/faqs-for-patent/)
+72. Proxario. (n.d.). *Philippines*. Retrieved from [https://www.proxario.com/philippines.html](https://www.proxario.com/philippines.html)
+73. RecurraPH. (n.d.). *Understanding Patents & Utility Models in the Philippines*. Retrieved from [https://www.recurraph.com/blog/understanding-patents-utility-models-philippines](https://www.recurraph.com/blog/understanding-patents-utility-models-philippines)
+74. ResearchGate. (n.d.). *Philosophy and History of Intellectual Property*. Retrieved from [https://www.researchgate.net/publication/368621993_Philosophy_and_history_of_intellectual_property](https://www.researchgate.net/publication/368621993_Philosophy_and_history_of_intellectual_property)
+75. Respicio & Co. Law Firm. (n.d.). *Mercantile 
     // Initialize first section
     showSection('home');
 
